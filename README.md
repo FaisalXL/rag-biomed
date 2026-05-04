@@ -2,7 +2,7 @@
 
 A **router** decides whether to answer a biomedical question with **Llama 3.1 8B** alone or with **retrieval** over a **FAISS** index of PubMed-style abstracts. Routers are trained from **MedHallu**-style prompts with weak labels from embedding similarity, then compared on a **PubMedQA** adaptive benchmark.
 
-This repo doubles as a **course project** (USC CSCI 544) and a **portfolio** artifact: clean `src/` layout, numbered pipeline scripts, paired notebooks + `examples/` scripts, and an optional local-only verification notebook template.
+This repo is a **course project** (USC CSCI 544) and a **portfolio** artifact: a small `src/` library, numbered `scripts/` pipeline steps, and a single **`main.py`** entrypoint plus [`notebooks/pipeline.ipynb`](notebooks/pipeline.ipynb) for the same flow in Jupyter.
 
 Write-up: [CSCI544_FinalReport.pdf](CSCI544_FinalReport.pdf) (methods, related work, full tables).
 
@@ -20,9 +20,9 @@ The table below is a **fixed reference configuration** from this codebase: **Pub
 | Adaptive + DistilBERT router | **51%** | Very high RAG bypass in this run; hurts accuracy here |
 | Adaptive + Llama LoRA router | **61%** | Middle ground |
 
-**Router-only validation** on the held-out **MedHallu CSV** split (same notebook source) was about **74.3%** (XGBoost) vs **74.7%** (DistilBERT)—so headline “XGBoost wins” refers to the **adaptive PubMedQA** column above, not that narrow accuracy tie.
+**Router-only validation** on the held-out **MedHallu CSV** split was about **74.3%** (XGBoost) vs **74.7%** (DistilBERT)—so headline “XGBoost wins” refers to the **adaptive PubMedQA** column above, not that narrow accuracy tie.
 
-Reproduce or refresh: `python scripts/06_adaptive_rag_shootout.py --n-samples 100` (optionally `--csv-out artifacts/shootout_last.csv`).
+Reproduce: `python main.py final --n-samples 100` (after artifacts exist, or let `final` build missing steps 02–05). Optional: `--csv-out artifacts/shootout_last.csv`.
 
 ---
 
@@ -65,18 +65,37 @@ pip install -U pip && pip install -r requirements.txt
 pip install -e .   # optional; or export PYTHONPATH="$(pwd)/src"
 ```
 
-Gated Llama weights: set `HF_TOKEN` or `huggingface-cli login`.
+Gated Llama weights: set **`HF_TOKEN`** or `huggingface-cli login`.
 
 ---
 
-## Jupyter vs Python
+## Run (`main.py`)
 
-| If you prefer… | Use |
-|----------------|-----|
-| Narrative + Colab / VS Code interactive | [notebooks/overview.ipynb](notebooks/overview.ipynb), [notebooks/adaptive_rag_demo.ipynb](notebooks/adaptive_rag_demo.ipynb) |
-| Terminal, CI, or “no notebook” | [examples/overview_main.py](examples/overview_main.py), [examples/adaptive_rag_demo.py](examples/adaptive_rag_demo.py) |
+From the repo root:
 
-Same logic lives in **`src/adaptive_rag/`**; notebooks and `examples/` are thin wrappers.
+| Command | Purpose |
+|--------|---------|
+| `python main.py final` | If anything is missing under `data/` / `artifacts/`, runs **scripts 02→05** (MedHallu CSV, LoRA, FAISS, XGB + optional DistilBERT), then runs the **PubMedQA shootout** (same outcome as `scripts/06`). |
+| `python main.py final --skip-build` | **Fail fast** if CSV, LoRA, FAISS, or XGB joblib is missing (no automatic build). |
+| `python main.py probe` | Hidden-state linear probe on HaluEval (`scripts/01`). Use `--model-id`, `--tasks`, `--max-samples`, `--hf-token` as needed. |
+| `python main.py text-baselines` | Classical HaluEval baselines (`scripts/00`); `--task qa|dialogue|summarization`, `--method tfidf|ngram`. |
+
+Useful flags on **`final`**: `--n-samples`, `--csv-out`, `--no-xgb`, `--no-bert`, `--epochs`, `--batch-size` (MedHallu), `--faiss-batch-size`, `--skip-bert` (for step 05), `--hf-token`.
+
+---
+
+## Repository layout
+
+| Path | Role |
+|------|------|
+| [`main.py`](main.py) | Primary CLI: `final`, `probe`, `text-baselines` |
+| [`src/adaptive_rag/`](src/adaptive_rag/) | Library (data gen, training, FAISS, shootout, [`orchestrate.py`](src/adaptive_rag/orchestrate.py) for artifact checks + subprocess to 02–05) |
+| [`scripts/`](scripts/) | Numbered pipeline steps `00`–`06` (granular reruns and debugging) |
+| [`notebooks/pipeline.ipynb`](notebooks/pipeline.ipynb) | Jupyter mirror: ensure artifacts + shootout; optional probe / baseline cells |
+| `data/`, `artifacts/` | Generated CSV, FAISS, adapters, joblibs (see `.gitkeep` where present) |
+| [`legacy_notebooks/`](legacy_notebooks/) | Archived original Colab exports (not imported by the main code path) |
+
+Any local copies of **`MasterVerification*.ipynb`** are **gitignored** by default (optional private verification notebooks; not part of the public workflow).
 
 ---
 
@@ -90,38 +109,28 @@ Same logic lives in **`src/adaptive_rag/`**; notebooks and `examples/` are thin 
 | 3 | `python scripts/03_train_lora_router.py` | LoRA sequence classifier on Llama |
 | 4 | `python scripts/04_build_pubmed_faiss.py` | FAISS index + mapping under `artifacts/` |
 | 5 (opt) | `python scripts/05_train_baseline_routers.py` | XGBoost joblib + DistilBERT folder |
-| 6 | `python scripts/06_adaptive_rag_shootout.py --n-samples 100` | Full shootout; add `--csv-out path.csv` for a table file |
+| 6 | `python scripts/06_adaptive_rag_shootout.py --n-samples 100` | Shootout only (assumes artifacts already exist) |
+
+`python main.py final` orchestrates **02→05** when needed, then runs the same shootout logic as step **06**.
 
 ---
 
-## Master verification (shootout parity check)
+## Artifacts and environment
 
-**Local (gitignored copy):** Copy **`MasterVerification.TEMPLATE.ipynb`** → **`MasterVerification.ipynb`** (gitignored). Use `HF_TOKEN` in the environment, not in committed cells. Run after scripts 02–04 (and 05 for DistilBERT in the full table).
+- **`data/`** — MedHallu router training CSV (from script 02). Override root with **`ADAPTIVE_RAG_DATA`**.
+- **`artifacts/`** — LoRA adapter dir, FAISS index + mapping, `xgb_router.joblib`, optional DistilBERT folder. Override with **`ADAPTIVE_RAG_ARTIFACTS`**.
+- **`ADAPTIVE_RAG_GENERATOR_MODEL`** — generator for script 02 (default Llama 3.1 8B Instruct).
 
-**Google Colab (standalone):** Open **`MasterVerification_COLAB.ipynb`** in Colab. Set `REPO_URL` to a branch that contains this repo, add the Colab secret **`HF_TOKEN`**, then **Runtime → Run all**. The notebook clones the repo, installs `requirements.txt`, prepends `src/` to `PYTHONPATH`, and runs the same shootout logic as the template. Point **`ADAPTIVE_RAG_ARTIFACTS`** / **`ADAPTIVE_RAG_DATA`** at Drive if large artifacts are not in the clone, or flip **`RUN_PIPE`** in the optional cell to build them in-session (slow).
-
----
-
-## Layout
-
-| Path | Role |
-|------|------|
-| `src/adaptive_rag/` | Library |
-| `scripts/` | Full pipeline CLIs |
-| `notebooks/` | Jupyter demos paired with `examples/` |
-| `examples/` | Python twins of those notebooks |
-| `data/`, `artifacts/` | Generated data and checkpoints (see `.gitkeep`) |
-| `legacy_notebooks/` | Archived original Colab exports (not imported by the main code path) |
-| `MasterVerification.TEMPLATE.ipynb` | Copy to gitignored `MasterVerification.ipynb` for a local shootout check |
-| `MasterVerification_COLAB.ipynb` | Colab-first: clone repo, install deps, run the same shootout (set `REPO_URL` + secret `HF_TOKEN`) |
+First full **`main.py final`** build can take **many hours** (MedHallu generations, LoRA training, full PubMed FAISS, baselines).
 
 ---
 
 ## Troubleshooting
 
-- **401 / Llama access:** Accept the model license on Hugging Face and export `HF_TOKEN`.
-- **OOM:** Lower batch sizes in scripts 02–03; reduce `--n-samples` for demos.
-- **`Trainer` / tokenizer API:** If a newer `transformers` requires `processing_class=` instead of `tokenizer=`, adjust [train_lora_router.py](src/adaptive_rag/train_lora_router.py) and [router_baselines.py](src/adaptive_rag/router_baselines.py).
+- **401 / Llama access:** Accept the model license on Hugging Face and export **`HF_TOKEN`**.
+- **403 Forbidden on `meta-llama/...`:** Your token is valid but **cannot read gated repos**. With a **fine-grained** Hugging Face token, enable **“Access to public gated repositories”** in [token settings](https://huggingface.co/settings/tokens), or use a **classic** token with read access.
+- **OOM:** Lower batch sizes in scripts 02–03; reduce `--n-samples` for quick runs.
+- **`Trainer` / tokenizer API:** If a newer `transformers` requires `processing_class=` instead of `tokenizer=`, adjust [`train_lora_router.py`](src/adaptive_rag/train_lora_router.py) and [`router_baselines.py`](src/adaptive_rag/router_baselines.py).
 
 ---
 

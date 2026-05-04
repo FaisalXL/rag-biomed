@@ -1,5 +1,5 @@
-# Local-only copy of master verification notebook (see MasterVerification.TEMPLATE.ipynb)
-MasterVerification.ipynb
+# Master verification notebooks — keep local copies only; not tracked on GitHub
+MasterVerification*.ipynb
 
 .venv/
 venv/

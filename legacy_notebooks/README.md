@@ -1,12 +1,12 @@
 # Legacy Colab notebooks (archive only)
 
-This directory contains **original Colab exports** from the team: large widget metadata, execution outputs, and exploratory cells. They are **not** imported by `src/`, `scripts/`, `notebooks/`, or `examples/`.
+This directory contains **original Colab exports** from the team: large widget metadata, execution outputs, and exploratory cells. They are **not** imported by `src/`, `scripts/`, `notebooks/`, or `main.py`.
 
 Use them when you need a **historical screenshot**, a figure, or to diff against the refactored code. The maintained execution path is:
 
 - **Library:** `src/adaptive_rag/`
 - **Full runs:** `scripts/00`–`06`
-- **Portfolio:** `notebooks/*.ipynb` and paired `examples/*.py`
+- **Portfolio:** `notebooks/pipeline.ipynb` (and repo root `main.py`)
 
 | Legacy file | Topic |
 |-------------|--------|
