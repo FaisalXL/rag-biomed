@@ -35,6 +35,11 @@ def main():
     ap.add_argument("--no-xgb", action="store_true")
     ap.add_argument("--no-bert", action="store_true")
     ap.add_argument("--csv-out", type=Path, default=None, help="Optional path to save shootout table (CSV)")
+    ap.add_argument(
+        "--generator-model",
+        default=None,
+        help="Causal LM + LoRA base (default: ADAPTIVE_RAG_GENERATOR_MODEL / config; must match adapter training).",
+    )
     ap.add_argument("--hf-token", default=os.environ.get("HF_TOKEN"))
     args = ap.parse_args()
 
@@ -56,7 +61,7 @@ def main():
     if not args.no_bert and distil_dir is None:
         print("Note: DistilBERT router dir missing; skipping D_BERT (train with step 5 or pass --no-bert)")
 
-    run_shootout_report_cli(
+    kw: dict = dict(
         faiss_index_path=args.faiss_index,
         faiss_mapping_path=args.faiss_mapping,
         lora_adapter_dir=args.lora_adapter,
@@ -66,9 +71,12 @@ def main():
         print_table=True,
         csv_path=args.csv_out,
     )
+    if args.generator_model:
+        kw["generator_model_id"] = args.generator_model
+    run_shootout_report_cli(**kw)
 
 
 if __name__ == "__main__":
     if not torch.cuda.is_available():
-        print("Warning: CUDA not available. Llama 8B will be slow or OOM on CPU.")
+        print("Warning: CUDA not available. Large generator models will be slow or may OOM on CPU.")
     main()

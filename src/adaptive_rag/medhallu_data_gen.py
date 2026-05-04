@@ -20,6 +20,7 @@ def build_medhallu_router_csv(
     batch_size: int = 16,
     model_id: str | None = None,
     embedder_id: str | None = None,
+    max_rows: int | None = None,
 ) -> Path:
     ensure_dirs()
     model_id = model_id or DEFAULT_GENERATOR_MODEL
@@ -48,6 +49,12 @@ def build_medhallu_router_csv(
     print("Loading MedHallu (pqa_artificial train)...")
     dataset = load_dataset("UTAustin-AIHealth/MedHallu", "pqa_artificial", split="train")
     df = pd.DataFrame(dataset)
+    if max_rows is not None:
+        if max_rows < 1:
+            raise ValueError("max_rows must be >= 1 when set")
+        n0 = len(df)
+        df = df.iloc[:max_rows].reset_index(drop=True)
+        print(f"Using first {len(df)} of {n0} rows (max_rows={max_rows}).")
 
     prompts: list[str] = []
     for _, row in df.iterrows():

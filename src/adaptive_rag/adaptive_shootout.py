@@ -76,12 +76,14 @@ def run_shootout(
     threshold_xgb: float = 0.70,
     threshold_bert: float = 0.75,
     threshold_lora: float = 0.75,
+    generator_model_id: str | None = None,
 ) -> dict:
     """
     If distilbert_dir is None, skips D_BERT. If xgb_model/embedder None, skips C_XGB.
     xgb_model must be fitted XGBClassifier from router_baselines (expects embedder in scope).
+    If generator_model_id is None, uses ``DEFAULT_GENERATOR_MODEL`` (must match the LoRA base).
     """
-    model_id = DEFAULT_GENERATOR_MODEL
+    model_id = generator_model_id or DEFAULT_GENERATOR_MODEL
     embedder_id = DEFAULT_EMBEDDER_MODEL
 
     tokenizer, gen_model = load_generator(model_id)

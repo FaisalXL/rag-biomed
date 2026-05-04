@@ -1,6 +1,9 @@
 # Master verification notebooks — keep local copies only; not tracked on GitHub
 MasterVerification*.ipynb
 
+# Local-only helper for capped-row / tiny-model runs (do not push)
+scripts/smoke_local_verify.sh
+
 .venv/
 venv/
 __pycache__/

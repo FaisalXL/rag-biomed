@@ -41,6 +41,7 @@ def cmd_final(args: argparse.Namespace) -> int:
         hf_token=hf,
         medhallu_batch_size=args.batch_size,
         medhallu_model_id=medhallu_model,
+        medhallu_max_rows=args.medhallu_max_rows,
         lora_epochs=args.epochs,
         faiss_batch_size=args.faiss_batch_size,
         skip_distilbert=args.skip_bert,
@@ -54,7 +55,7 @@ def cmd_final(args: argparse.Namespace) -> int:
         return 1
 
     if not torch.cuda.is_available():
-        print("Warning: CUDA not available. Llama 8B will be slow or OOM on CPU.")
+        print("Warning: CUDA not available. Large generator models will be slow or may OOM on CPU.")
 
     xgb_model = None
     if not args.no_xgb and args.xgb_path.exists():
@@ -75,6 +76,7 @@ def cmd_final(args: argparse.Namespace) -> int:
         n_samples=args.n_samples,
         print_table=True,
         csv_path=args.csv_out,
+        generator_model_id=medhallu_model,
     )
     return 0
 
@@ -124,7 +126,14 @@ def build_parser() -> argparse.ArgumentParser:
     pf.add_argument(
         "--model-id",
         default=None,
-        help="Generator for MedHallu CSV (default: config / ADAPTIVE_RAG_GENERATOR_MODEL).",
+        help="Base causal LM for 02 (CSV), 03 (LoRA), and 06 (shootout); default from ADAPTIVE_RAG_GENERATOR_MODEL / config.",
+    )
+    pf.add_argument(
+        "--medhallu-max-rows",
+        type=int,
+        default=None,
+        metavar="N",
+        help="Pass to script 02: only first N MedHallu rows (default: full split).",
     )
     pf.add_argument("--skip-bert", action="store_true", help="Pass --skip-bert to script 05.")
     pf.add_argument("--n-samples", type=int, default=100)

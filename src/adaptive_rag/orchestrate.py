@@ -60,6 +60,7 @@ def ensure_final_artifacts(
     hf_token: str | None = None,
     medhallu_batch_size: int = 16,
     medhallu_model_id: str | None = None,
+    medhallu_max_rows: int | None = None,
     lora_epochs: int = 2,
     faiss_batch_size: int = 256,
     skip_distilbert: bool = False,
@@ -82,18 +83,18 @@ def ensure_final_artifacts(
     extra_02: list[str] = ["--batch-size", str(medhallu_batch_size)]
     if medhallu_model_id:
         extra_02 += ["--model-id", medhallu_model_id]
+    if medhallu_max_rows is not None:
+        extra_02 += ["--max-rows", str(medhallu_max_rows)]
     if not MEDHALLU_TRAINING_CSV.is_file():
         print("--- (1/4) MedHallu CSV ---")
         _run_script(root, "02_generate_medhallu_router_csv.py", extra_02, hf_token=hf_token)
 
     if not lora_ready():
         print("--- (2/4) LoRA router ---")
-        _run_script(
-            root,
-            "03_train_lora_router.py",
-            ["--epochs", str(lora_epochs)],
-            hf_token=hf_token,
-        )
+        extra_03: list[str] = ["--epochs", str(lora_epochs)]
+        if medhallu_model_id:
+            extra_03 += ["--model-id", medhallu_model_id]
+        _run_script(root, "03_train_lora_router.py", extra_03, hf_token=hf_token)
 
     if not faiss_ready():
         print("--- (3/4) PubMed FAISS ---")

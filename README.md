@@ -80,7 +80,11 @@ From the repo root:
 | `python main.py probe` | Hidden-state linear probe on HaluEval (`scripts/01`). Use `--model-id`, `--tasks`, `--max-samples`, `--hf-token` as needed. |
 | `python main.py text-baselines` | Classical HaluEval baselines (`scripts/00`); `--task qa|dialogue|summarization`, `--method tfidf|ngram`. |
 
-Useful flags on **`final`**: `--n-samples`, `--csv-out`, `--no-xgb`, `--no-bert`, `--epochs`, `--batch-size` (MedHallu), `--faiss-batch-size`, `--skip-bert` (for step 05), `--hf-token`.
+Useful flags on **`final`**: `--model-id` (same base for steps **02 / 03 / shootout**; default Llama from config), `--medhallu-max-rows N` (optional; forwards to script **02** as `--max-rows` — **omit for full MedHallu**, which is the default course/TA path), `--n-samples`, `--csv-out`, `--no-xgb`, `--no-bert`, `--epochs`, `--batch-size` (MedHallu), `--faiss-batch-size`, `--skip-bert` (for step 05), `--hf-token`.
+
+Script **02** also accepts `--max-rows N` directly when run standalone.
+
+**Quick checks:** `python scripts/verify_imports.py` (imports / syntax, no downloads). `python scripts/verify_minimal_train.py` (single optimizer step through LoRA `Trainer`; uses a tiny temp CSV and `TinyLlama` by default). Script **03** accepts `--max-train-steps N` for a short run on a real CSV.
 
 ---
 
@@ -105,7 +109,7 @@ Any local copies of **`MasterVerification*.ipynb`** are **gitignored** by defaul
 |------|---------|---------|
 | 0 (opt) | `python scripts/00_text_baselines_haluval.py --task qa --method tfidf` | HaluEval text baselines |
 | 1 (opt) | `python scripts/01_internal_state_probe.py --tasks qa --max-samples 800` | Hidden-state linear probe (default Qwen; set `PROBE_MODEL_ID` for Llama) |
-| 2 | `python scripts/02_generate_medhallu_router_csv.py` | Build `data/medhallu_lora_training_data_batch.csv` |
+| 2 | `python scripts/02_generate_medhallu_router_csv.py` | Build `data/medhallu_lora_training_data_batch.csv` (optional `--max-rows N` for a prefix of the split) |
 | 3 | `python scripts/03_train_lora_router.py` | LoRA sequence classifier on Llama |
 | 4 | `python scripts/04_build_pubmed_faiss.py` | FAISS index + mapping under `artifacts/` |
 | 5 (opt) | `python scripts/05_train_baseline_routers.py` | XGBoost joblib + DistilBERT folder |
@@ -131,6 +135,7 @@ First full **`main.py final`** build can take **many hours** (MedHallu generatio
 - **403 Forbidden on `meta-llama/...`:** Your token is valid but **cannot read gated repos**. With a **fine-grained** Hugging Face token, enable **“Access to public gated repositories”** in [token settings](https://huggingface.co/settings/tokens), or use a **classic** token with read access.
 - **OOM:** Lower batch sizes in scripts 02–03; reduce `--n-samples` for quick runs.
 - **`Trainer` / tokenizer API:** If a newer `transformers` requires `processing_class=` instead of `tokenizer=`, adjust [`train_lora_router.py`](src/adaptive_rag/train_lora_router.py) and [`router_baselines.py`](src/adaptive_rag/router_baselines.py).
+- **PEFT / `torchao` version error on Colab** (`Found an incompatible version of torchao…`): the runtime image may ship an old `torchao` while `peft` expects ≥0.16 or no `torchao`. Run `pip uninstall -y torchao` (standard LoRA does not need it) or `pip install -U 'torchao>=0.16'`. The same failure can appear for **`python main.py final`** or **`scripts/03`** if your environment has that conflict—it is not specific to notebooks.
 
 ---
 
