@@ -77,10 +77,42 @@ From the repo root:
 |--------|---------|
 | `python main.py final` | If anything is missing under `data/` / `artifacts/`, runs **scripts 02→05** (MedHallu CSV, LoRA, FAISS, XGB + optional DistilBERT), then runs the **PubMedQA shootout** (same outcome as `scripts/06`). |
 | `python main.py final --skip-build` | **Fail fast** if CSV, LoRA, FAISS, or XGB joblib is missing (no automatic build). |
-| `python main.py probe` | Hidden-state linear probe on HaluEval (`scripts/01`). Use `--model-id`, `--tasks`, `--max-samples`, `--hf-token` as needed. |
-| `python main.py text-baselines` | Classical HaluEval baselines (`scripts/00`); `--task qa|dialogue|summarization`, `--method tfidf|ngram`. |
+| `python main.py probe` | Hidden-state linear probe on HaluEval (`scripts/01`). |
+| `python main.py text-baselines` | Classical HaluEval baselines (`scripts/00`). |
 
-flags on **`final`**: `--n-samples`, `--csv-out`, `--no-xgb`, `--no-bert`, `--epochs`, `--batch-size` (MedHallu), `--faiss-batch-size`, `--skip-bert` (for step 05), `--hf-token`.
+Use `python main.py <subcommand> --help` for the full parser text. Reference tables below match [`main.py`](main.py).
+
+### `main.py final` — flags
+
+| Flag | Default | Meaning |
+|------|---------|---------|
+| `--skip-build` | off | If set, do not run scripts 02–05; exit if any required artifact is missing. |
+| `--hf-token` | env `HF_TOKEN` | Hugging Face token for gated models / Hub (also passed to subprocesses when set here). |
+| `--batch-size` | `16` | MedHallu batch size (forwarded to script **02**). |
+| `--faiss-batch-size` | `256` | Embedding batch size for PubMed FAISS (script **04**). |
+| `--epochs` | `2` | LoRA training epochs (script **03**). |
+| `--model-id` | env `ADAPTIVE_RAG_GENERATOR_MODEL` or config default | Same **causal LM** id for CSV gen (**02**), LoRA base (**03**), and shootout generator + LoRA base (**06**). |
+| `--medhallu-max-rows N` | unset | If set, only the **first N** MedHallu rows in script **02** (omit for full ~9k-row split). |
+| `--skip-bert` | off | Passed to script **05** as `--skip-bert` (skip DistilBERT router training). |
+| `--n-samples` | `100` | PubMedQA questions in the shootout. |
+| `--csv-out PATH` | unset | Optional path to save the shootout metrics table as CSV. |
+| `--no-xgb` | off | Do not load `xgb_router.joblib`; shootout skips adaptive XGBoost column. |
+| `--no-bert` | off | Skip DistilBERT router in the shootout even if the artifact dir exists. |
+| `--faiss-index PATH` | `artifacts/...` from config | Override FAISS index path. |
+| `--faiss-mapping PATH` | `artifacts/...` from config | Override FAISS id/text mapping pickle. |
+| `--lora-adapter PATH` | `artifacts/llama3-medhallu-router` from config | LoRA adapter directory for shootout (and readiness check). |
+| `--distilbert-dir PATH` | `artifacts/distilbert_router` from config | DistilBERT router directory for shootout. |
+| `--xgb-path PATH` | `artifacts/xgb_router.joblib` from config | XGBoost classifier joblib for shootout. |
+
+### `main.py probe` — flags
+
+| Flag | Default | Meaning |
+|------|---------|---------|
+| `--model-id` | env `PROBE_MODEL_ID` or `Qwen/Qwen2.5-3B-Instruct` | Causal LM for hidden-state probe (script **01**). |
+| `--tasks` | `qa dialogue summarization` | HaluEval tasks (space-separated list after `--tasks`). |
+| `--max-samples N` | unset | Cap samples per task (script **01**). |
+| `--hf-token` | env `HF_TOKEN` | Hugging Face token if the probe model is gated. |
+
 
 ---
 
