@@ -80,7 +80,7 @@ From the repo root:
 | `python main.py probe` | Hidden-state linear probe on HaluEval (`scripts/01`). Use `--model-id`, `--tasks`, `--max-samples`, `--hf-token` as needed. |
 | `python main.py text-baselines` | Classical HaluEval baselines (`scripts/00`); `--task qa|dialogue|summarization`, `--method tfidf|ngram`. |
 
-Useful flags on **`final`**: `--n-samples`, `--csv-out`, `--no-xgb`, `--no-bert`, `--epochs`, `--batch-size` (MedHallu), `--faiss-batch-size`, `--skip-bert` (for step 05), `--hf-token`.
+flags on **`final`**: `--n-samples`, `--csv-out`, `--no-xgb`, `--no-bert`, `--epochs`, `--batch-size` (MedHallu), `--faiss-batch-size`, `--skip-bert` (for step 05), `--hf-token`.
 
 ---
 
@@ -95,7 +95,6 @@ Useful flags on **`final`**: `--n-samples`, `--csv-out`, `--no-xgb`, `--no-bert`
 | `data/`, `artifacts/` | Generated CSV, FAISS, adapters, joblibs (see `.gitkeep` where present) |
 | [`legacy_notebooks/`](legacy_notebooks/) | Archived original Colab exports (not imported by the main code path) |
 
-Any local copies of **`MasterVerification*.ipynb`** are **gitignored** by default (optional private verification notebooks; not part of the public workflow).
 
 ---
 
@@ -125,14 +124,6 @@ First full **`main.py final`** build can take **many hours** (MedHallu generatio
 
 ---
 
-## Troubleshooting
-
-- **401 / Llama access:** Accept the model license on Hugging Face and export **`HF_TOKEN`**.
-- **403 Forbidden on `meta-llama/...`:** Your token is valid but **cannot read gated repos**. With a **fine-grained** Hugging Face token, enable **“Access to public gated repositories”** in [token settings](https://huggingface.co/settings/tokens), or use a **classic** token with read access.
-- **OOM:** Lower batch sizes in scripts 02–03; reduce `--n-samples` for quick runs.
-- **`Trainer` / tokenizer API:** If a newer `transformers` requires `processing_class=` instead of `tokenizer=`, adjust [`train_lora_router.py`](src/adaptive_rag/train_lora_router.py) and [`router_baselines.py`](src/adaptive_rag/router_baselines.py).
-
----
 
 ## Course
 
